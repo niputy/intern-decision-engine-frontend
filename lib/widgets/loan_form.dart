@@ -35,16 +35,12 @@ class _LoanFormState extends State<LoanForm> {
       final result = await _apiService.requestLoanDecision(
           _nationalId, _loanAmount, _loanPeriod);
       setState(() {
-        int tempAmount = int.parse(result['loanAmount'].toString());
-        int tempPeriod = int.parse(result['loanPeriod'].toString());
+        final approvedAmount = int.parse(result['loanAmount'].toString());
+        final approvedPeriod = int.parse(result['loanPeriod'].toString());
 
-        if (tempAmount <= _loanAmount || tempPeriod > _loanPeriod) {
-          _loanAmountResult = int.parse(result['loanAmount'].toString());
-          _loanPeriodResult = int.parse(result['loanPeriod'].toString());
-        } else {
-          _loanAmountResult = _loanAmount;
-          _loanPeriodResult = _loanPeriod;
-        }
+        _loanAmountResult = min(approvedAmount, _loanAmount);
+        _loanPeriodResult = max(approvedPeriod, _loanPeriod);
+
         _errorMessage = result['errorMessage'].toString();
       });
     } else {
@@ -52,6 +48,7 @@ class _LoanFormState extends State<LoanForm> {
       _loanPeriodResult = 0;
     }
   }
+
 
   // Builds the application form widget.
   // The widget automatically queries the endpoint for the latest data
@@ -89,82 +86,32 @@ class _LoanFormState extends State<LoanForm> {
                     },
                   ),
                   const SizedBox(height: 60.0),
-                  Text('Loan Amount: $_loanAmount €'),
-                  const SizedBox(height: 8),
-                  Slider.adaptive(
-                    value: _loanAmount.toDouble(),
+                  _buildSlider(
+                    label: 'Loan Amount',
+                    value: _loanAmount,
+                    unit: '€',
                     min: 2000,
                     max: 10000,
                     divisions: 80,
-                    label: '$_loanAmount €',
-                    activeColor: AppColors.secondaryColor,
-                    onChanged: (double newValue) {
+                    onChanged: (newValue) {
                       setState(() {
                         _loanAmount = ((newValue.floor() / 100).round() * 100);
-                        _submitForm();
                       });
                     },
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: const [
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(left: 12),
-                          child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text('2000€')),
-                        ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Text('10000€'),
-                          ),
-                        ),
-                      )
-                    ],
-                  ),
                   const SizedBox(height: 24.0),
-                  Text('Loan Period: $_loanPeriod months'),
-                  const SizedBox(height: 8),
-                  Slider.adaptive(
-                    value: _loanPeriod.toDouble(),
+                  _buildSlider(
+                    label: 'Loan Period',
+                    value: _loanPeriod,
+                    unit: 'months',
                     min: 12,
                     max: 60,
                     divisions: 40,
-                    label: '$_loanPeriod months',
-                    activeColor: AppColors.secondaryColor,
-                    onChanged: (double newValue) {
+                    onChanged: (newValue) {
                       setState(() {
                         _loanPeriod = ((newValue.floor() / 6).round() * 6);
-                        _submitForm();
                       });
                     },
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: const [
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(left: 12),
-                          child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text('6 months')),
-                        ),
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: 12),
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: Text('60 months'),
-                          ),
-                        ),
-                      )
-                    ],
                   ),
                   const SizedBox(height: 24.0),
                 ],
@@ -186,6 +133,60 @@ class _LoanFormState extends State<LoanForm> {
           ),
         ],
       ),
+    );
+  }
+  
+  Widget _buildSlider({
+  required String label,
+  required int value,
+  required String unit,
+  required double min,
+  required double max,
+  required int divisions,
+  required ValueChanged<double> onChanged,
+  }) {
+    return Column(
+      children: [
+        Text('$label: $value $unit'),
+        const SizedBox(height: 8),
+        Slider.adaptive(
+          value: value.toDouble(),
+          min: min,
+          max: max,
+          divisions: divisions,
+          label: '$value $unit',
+          activeColor: AppColors.secondaryColor,
+          onChanged: onChanged,
+          onChangeEnd: (newValue) {
+            setState(() {
+              _submitForm();
+            });
+          },
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('$min $unit'),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text('$max $unit'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
